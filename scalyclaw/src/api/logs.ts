@@ -11,7 +11,17 @@ const LOG_FILES: Record<string, string> = {
 
 export function registerLogsRoutes(server: FastifyInstance): void {
   // GET /api/logs — list log files or tail a specific log
-  server.get<{ Querystring: { file?: string; lines?: string } }>('/api/logs', async (request, reply) => {
+  server.get<{ Querystring: { file?: string; lines?: string } }>(
+    '/api/logs',
+    {
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
+      },
+    },
+    async (request, reply) => {
     const processes = await listProcesses(getRedis());
     const lines = Number(request.query.lines) || 100;
 
@@ -66,7 +76,8 @@ export function registerLogsRoutes(server: FastifyInstance): void {
     }
 
     return { files };
-  });
+    },
+  );
 }
 
 async function proxyWorkerLogs(worker: ProcessInfo, lines: number): Promise<{ file: string; content: string }> {
